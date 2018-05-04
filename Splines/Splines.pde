@@ -23,12 +23,13 @@ Scene scene;
 Interpolator interpolator;
 OrbitNode eye;
 boolean drawGrid = true, drawCtrl = true;
+boolean natural = false, hermite = false, bezier7 = false, bezier3 = false;
 
 //Choose P3D for a 3D scene, or P2D or JAVA2D for a 2D scene
 String renderer = P3D;
 
 void setup() {
-  size(800, 800, renderer);
+  size(700, 700, renderer);
   scene = new Scene(this);
   eye = new OrbitNode(scene);
   eye.setDamping(0);
@@ -51,7 +52,7 @@ void setup() {
 }
 
 void draw() {
-  background(175);
+  background(255);
   if (drawGrid) {
     stroke(255, 255, 0);
     scene.drawGrid(200, 50);
@@ -69,8 +70,10 @@ void draw() {
   // implement me
   // draw curve according to control polygon an mode
   // To retrieve the positions of the control points do:
-  // for(Frame frame : interpolator.keyFrames())
-  //   frame.position();
+  ArrayList<Vector> points = new ArrayList( );
+  for( Frame frame : interpolator.keyFrames( ) ){
+    points.add( frame.position( ) );
+  }
 }
 
 void keyPressed() {
@@ -80,4 +83,12 @@ void keyPressed() {
     drawGrid = !drawGrid;
   if (key == 'c')
     drawCtrl = !drawCtrl;
+  if (key == '0')
+    natural = !natural;
+  if (key == '1')
+    hermite = !hermite;
+  if (key == '2')
+    bezier7 = !bezier7;
+  if (key == '3')
+    bezier3 = !bezier3;  
 }
