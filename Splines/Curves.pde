@@ -185,16 +185,6 @@ public class Curves
     temp = invert[pos];
     invert[pos] = invert[i];
     invert[i] = temp;
-    float temp1 = valuesX[pos];
-    valuesX[pos] = valuesX[i];
-    valuesX[i] = temp1;
-    temp1 = valuesY[pos];
-    valuesY[pos] = valuesY[i];
-    valuesY[i] = temp1;
-    temp1 = valuesZ[pos];
-    valuesZ[pos] = valuesZ[i];
-    valuesZ[i] = temp1;
-    //drawMatrix();
     return;
   }
 
