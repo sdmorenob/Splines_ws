@@ -1,10 +1,13 @@
 import java.util.List;
+import java.util.Arrays;
 
 public class Curves
 {
   private ArrayList<Vector> controlPoints;
-  private ArrayList<Float> incognits;
-  private ArrayList<Float> values;
+  private float[] incognits;
+  private float[] valuesX;
+  private float[] valuesY;
+  private float[] valuesZ;
   private float[][] matrix;
 
   public Curves( List<Frame> frames ){
@@ -15,12 +18,16 @@ public class Curves
     incognits = null;
   }
 
-  public ArrayList<Float> naturalCubicSpline( ){
+  public List<Float> naturalCubicSpline( int curve ){
+    if( curve > numCurves( ) || curve < 0 )
+      throw new IllegalArgumentException( "The parameter must be: 0 <= param <= numCurves" );
     if( incognits == null ){
       // number of incognits
       int numIncognits = (controlPoints.size( ) - 1) * 4;
-      incognits = new ArrayList( numIncognits * 3 );
-      values = new ArrayList( numIncognits );
+      incognits = new float[numIncognits * 3];
+      valuesX = new float[ numIncognits ];
+      valuesY = new float[ numIncognits ];
+      valuesZ = new float[ numIncognits ];
       matrix = new float[numIncognits][numIncognits];
       for( int i = 0; i < numIncognits; i++ ){
         for( int j = 0; j < numIncognits; j++ ){
@@ -29,7 +36,13 @@ public class Curves
       }
       this.solve( );
     }
-    return incognits;
+    List<Float> coefficientCurve = new ArrayList( 12 );
+    for( int i = 0; i < 4; i++ ){
+      coefficientCurve.add( incognits[i + curve] );
+      coefficientCurve.add( incognits[i + curve + (numCurves( ) * 4)] );
+      coefficientCurve.add( incognits[i + curve + (numCurves( ) * 8)] );
+    }
+    return coefficientCurve;
   }
 
   public void hermiteSpline( ){
@@ -52,9 +65,9 @@ public class Curves
   private void solve( ){
     // Matrix
     this.createMatrix( );
-    this.invertMatrix( );
     this.createResults( );
-    for( int i = 0; i < 0; i++ );
+    this.invertMatrix( );
+    this.findIncognits( );
   }
 
   private void createMatrix( ){
@@ -111,96 +124,143 @@ public class Curves
 
   }
 
-  public void invertMatrix( ){
-    this.matrix = multiplicar( 1F / determinante( matrix ), adjunta( ) );
+  private void createResults( ){
+    int numCurves = (controlPoints.size( ) - 1);
+    for( int i = 0; i < numCurves; i++ ){
+      valuesX[(i * 2)] = controlPoints.get( i ).x( );
+      valuesX[(i * 2) + 1] = controlPoints.get( i + 1 ).x( );
+      valuesY[(i * 2)] = controlPoints.get( i ).y( );
+      valuesY[(i * 2) + 1] = controlPoints.get( i + 1 ).y( );
+      valuesZ[(i * 2)] = controlPoints.get( i ).z( );
+      valuesZ[(i * 2) + 1] = controlPoints.get( i + 1 ).z( );
+    }
+    for( int i = numCurves * 2; i < numCurves * 4; i += 2 ){
+      valuesX[i] = 0;
+      valuesX[i + 1] = 0;
+      valuesY[i] = 0;
+      valuesY[i + 1] = 0;
+      valuesZ[i] = 0;
+      valuesZ[i + 1] = 0;
+    }
+    return;
   }
 
-  public void createResults( ){
-    
-  }
-
-  public float[][] multiplicar( float n, float[][] matrix ){
+  private void invertMatrix( ){
+    // create identity matrix to work in inverse metrix
+    float[][] invert = new float[matrix.length][matrix.length];
     for( int i = 0; i < matrix.length; i++ )
       for( int j = 0; j < matrix.length; j++ )
-        matrix[i][j] *= n;
-    return matrix;
-  }
-
-  public float[][] adjunta( ){
-    return transpuesta( coefactores( ) );
-  }
-
-  private float[][] coefactores( ){
-    float[][] coefactores = new float[matrix.length][matrix.length];
-    for( int i = 0; i < matrix.length; i++ ){
-      for( int j = 0; j < matrix.length; j++ ){
-        // ----------------------------------------------
-        float[][] subMatrix = new float[matrix.length - 1][matrix.length - 1];
-        boolean passi = false;
-        for( int m = 0; m < matrix.length; m++ ){
-          if( m != i ){
-            boolean passj = false;
-            for( int n = 0; n < matrix.length; n++ ){
-              if( n != j ){
-                int xi = m;
-                int xj = n;
-                if( passi )
-                  xi -= 1;
-                if( passj )
-                  xj -= 1;
-                subMatrix[xi][xj] = matrix[m][n];
-              }else
-                passj = true;
-            }
-          }else
-            passi = true;
-        }
-        if( (i + j) % 2 == 0 )
-          coefactores[i][j] = determinante( subMatrix );
+        if( i != j )
+          invert[i][j] = 0F;
         else
-          coefactores[i][j] = -determinante( subMatrix );
-      }
-    }
-    return coefactores;
-  }
-
-  public float[][] transpuesta( float[][] matrix ){
-    float[][] matrixT = new float[matrix[0].length][matrix.length];
+          invert[i][j] = 1F;
+    // Iterate to find inverse matrix
     for( int i = 0; i < matrix.length; i++ ){
-      for( int j = 0; j < matrix.length; j++ )
-        matrixT[i][j] = matrix[j][i];
-    }
-    return matrixT;
-  }
-
-  private float determinante( float[][] matriz ){
-    float det;
-    if( matriz.length == 2 ){
-      det = (matriz[0][0] * matriz[1][1]) - (matriz[1][0] * matriz[0][1]);
-      return det;
-    }
-    float suma = 0;
-    for( int h = 0; h < matriz.length; h++ ){
-      float[][] subMatrix = new float[matriz.length - 1][matriz.length - 1];
-      for( int i = 1; i < matriz.length; i++ ){
-        boolean pass = false;
-        for( int j = 0; j < matriz.length; j++ ){
-          if( j != h )
-            if( pass )
-              subMatrix[i - 1][j - 1] = matriz[i][j];
-            else
-              subMatrix[i - 1][j] = matriz[i][j];
-          else
-            pass = true;
+      if( matrix[i][i] == 0F ){
+          pivote( i, invert );
+      }
+      for( int j = 0; j < matrix.length; j++ ){
+        if( j != i ){
+          if( matrix[j][i] != 0F )
+            gauss( i, j, invert );
         }
       }
-      if( h % 2 == 0 )
-        suma += matriz[0][h] * determinante( subMatrix );
-      else
-        suma -= matriz[0][h] * determinante( subMatrix );
     }
-    return suma;
+    convertToIdentity( invert );
+    matrix = invert;
   }
 
+  private void pivote( int pos, float[][] invert ){
+    int i = pos + 1;
+    while( i < matrix.length && matrix[i][pos] == 0F ){
+      i++;
+    }
+    if( i == matrix.length ){
+      println( "Is not posible find the inverse of matrix" );
+      exit( );
+    }
+    float[] temp = matrix[pos];
+    matrix[pos] = matrix[i];
+    matrix[i] = temp;
+    temp = invert[pos];
+    invert[pos] = invert[i];
+    invert[i] = temp;
+    float temp1 = valuesX[pos];
+    valuesX[pos] = valuesX[i];
+    valuesX[i] = temp1;
+    temp1 = valuesY[pos];
+    valuesY[pos] = valuesY[i];
+    valuesY[i] = temp1;
+    temp1 = valuesZ[pos];
+    valuesZ[pos] = valuesZ[i];
+    valuesZ[i] = temp1;
+    //drawMatrix();
+    return;
+  }
+
+  private void gauss( int ref, int conv, float[][] invert ){
+    float const1 = matrix[ref][ref];
+    float const2 = matrix[conv][ref];
+    for( int i = 0; i < matrix.length; i++ ){
+      matrix[conv][i] *= const1;
+      matrix[conv][i] -= (const2 * matrix[ref][i]);
+      invert[conv][i] *= const1;
+      invert[conv][i] -= (const2 * invert[ref][i]);
+    }
+  }
+
+  private void convertToIdentity( float[][] invert ){
+    for( int i = 0; i < matrix.length; i++ ){
+      float div = matrix[i][i];
+      matrix[i][i] /= div;
+      for( int j = 0; j < matrix.length; j++ ){
+        matrix[i][j] *= matrix[i][j];
+        invert[i][j] /= div;
+      }
+    }
+  }
+
+  private void findIncognits( ){
+    int numIncognits = (controlPoints.size( ) - 1) * 4;
+    for( int i = 0; i < numIncognits; i++ ){
+      float[] sum = {0F, 0F, 0F};
+      for( int j = 0; j < numIncognits; j++ ){
+        sum[0] += matrix[i][j] * valuesX[j];
+        sum[1] += matrix[i][j] * valuesY[j];
+        sum[2] += matrix[i][j] * valuesZ[j];
+      }
+      incognits[i] = sum[0];
+      incognits[i + numIncognits] = sum[1];
+      incognits[i + (2 * numIncognits)] = sum[2];
+    }
+  }
+
+  private void drawMatrix( ){
+    for( int l = 0; l < matrix.length; l++ ){
+      for( int p = 0; p < matrix.length; p++ ){
+        print( matrix[l][p] );
+        print( "  " );
+      }
+      println(  );
+    }
+  }
+
+  private void drawMatrix( float[][] matrix ){
+    for( int l = 0; l < matrix.length; l++ ){
+      for( int p = 0; p < matrix.length; p++ ){
+        print( matrix[l][p] );
+        print( "  " );
+      }
+      println(  );
+    }
+  }
+
+  public int numControlPoints( ){
+    return controlPoints.size( );
+  };
+  
+  public int numCurves( ){
+    return numControlPoints( ) - 1;
+  }
 
 }

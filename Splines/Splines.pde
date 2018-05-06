@@ -78,7 +78,25 @@ void draw( ){
 
   switch( mode ){
     case 0:
-      curves.naturalCubicSpline( );
+      for( int i = 0; i < curves.numCurves( ); i++ ){
+        fill( 255, 0, 0 );
+        stroke( 255, 0, 255 );
+        List<Float> coefficients = curves.naturalCubicSpline( i );
+        for( float U = 0F; U < 1F; U += 0.002 ){
+          float U3 = pow( U, 3 );
+          float U2 = pow( U, 2 );
+          float X = U3 * coefficients.get( 0 ) + U2 * coefficients.get( 1 ) + U * coefficients.get( 2 ) + coefficients.get( 3 );
+          float Y = U3 * coefficients.get( 4 ) + U2 * coefficients.get( 5 ) + U * coefficients.get( 6 ) + coefficients.get( 7 );
+          float Z = U3 * coefficients.get( 8 ) + U2 * coefficients.get( 9 ) + U * coefficients.get( 10 ) + coefficients.get( 11 );
+          print( "X: " );
+          print( X );
+          print( "  Y: " );
+          print( Y );
+          print( "  Z: " );
+          println( Z );
+          point( X, Y, Z );
+        }
+      }
     break;
     case 1:
       curves.hermiteSpline( );
