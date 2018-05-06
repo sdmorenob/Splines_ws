@@ -3,8 +3,8 @@ import java.util.Arrays;
 
 public class Curves
 {
-  private ArrayList<Vector> controlPoints;
-  private float[] incognits;
+  public ArrayList<Vector> controlPoints;
+  private float[][] incognits;
   private float[] valuesX;
   private float[] valuesY;
   private float[] valuesZ;
@@ -18,13 +18,11 @@ public class Curves
     incognits = null;
   }
 
-  public List<Float> naturalCubicSpline( int curve ){
-    if( curve > numCurves( ) || curve < 0 )
-      throw new IllegalArgumentException( "The parameter must be: 0 <= param <= numCurves" );
+  public float[][] naturalCubicSpline( ){
     if( incognits == null ){
       // number of incognits
       int numIncognits = (controlPoints.size( ) - 1) * 4;
-      incognits = new float[numIncognits * 3];
+      incognits = new float[3][numIncognits];
       valuesX = new float[ numIncognits ];
       valuesY = new float[ numIncognits ];
       valuesZ = new float[ numIncognits ];
@@ -36,13 +34,7 @@ public class Curves
       }
       this.solve( );
     }
-    List<Float> coefficientCurve = new ArrayList( 12 );
-    for( int i = 0; i < 4; i++ ){
-      coefficientCurve.add( incognits[i + curve] );
-      coefficientCurve.add( incognits[i + curve + (numCurves( ) * 4)] );
-      coefficientCurve.add( incognits[i + curve + (numCurves( ) * 8)] );
-    }
-    return coefficientCurve;
+    return incognits;
   }
 
   public void hermiteSpline( ){
@@ -65,7 +57,7 @@ public class Curves
   private void solve( ){
     // Matrix
     this.createMatrix( );
-    this.createResults( );
+    drawMatrix( );
     this.invertMatrix( );
     this.findIncognits( );
   }
@@ -74,9 +66,9 @@ public class Curves
     int indexC = 0;
     int numCurves = this.controlPoints.size( ) - 1;
     // 2n ecuations
-    for( int i = 0; i < numCurves * 2; i++, indexC += 4 ){
+    for( int i = 0; i < numCurves * 2; i += 2, indexC += 4 ){
       float[] aux1 = matrix[i];
-      float[] aux2 = matrix[++i];
+      float[] aux2 = matrix[i + 1];
       for( int j = indexC; j < indexC + 4; j++ ){
         if( j == indexC + 3 ){
           aux1[j] = 1F;
@@ -85,56 +77,31 @@ public class Curves
           aux2[j] = 1F;           
         }
       }
+      Vector controlPoint1 = controlPoints.get( (int)(i/2) );
+      Vector controlPoint2 = controlPoints.get( (int)(i/2) + 1 );
+      valuesX[i] = controlPoint1.x( );
+      valuesX[i + 1] = controlPoint2.x( );
+      valuesY[i] = controlPoint1.y( );
+      valuesY[i + 1] = controlPoint2.y( );
+      valuesZ[i] = controlPoint1.z( );
+      valuesZ[i + 1] = controlPoint2.z( );
     }
     // 2n - 2 ecuations
     indexC = 0;
     for( int i = numCurves * 2; i < (4 * numCurves) - 2; i++, indexC += 4 ){
       float[] aux1 = matrix[i];
       float[] aux2 = matrix[++i];
-      for( int j = indexC; j < indexC + 3; j++ ){
-        if( j == indexC ){
-          aux1[j] = 3F;
-          aux2[j] = 6F;
-          aux1[j + 4] = -3F;
-          aux2[j + 4] = -6F;
-        }else if( j == indexC + 1 ){
-          aux1[j] = 2F;
-          aux2[j] = 2F;
-          aux1[j + 4] = -2F;
-          aux2[j + 4] = -2F;
-        }else{
-          aux1[j] = 1F;
-          aux1[j + 4] = -1F;
-        }
-      }
-    }
-
-    // 2 ecuations
-    float[] aux1 = matrix[(4 * numCurves) - 2];
-    float[] aux2 = matrix[(4 * numCurves) - 1];
-    aux1[0] = 6F;
-    aux2[0] = 0F;
-    aux1[1] = 2F;
-    aux2[1] = 0F;
-    aux1[numCurves * 4 - 2] = 0F;
-    aux2[numCurves * 4 - 2] = 6F;
-    aux1[numCurves * 4 - 1] = 0F;
-    aux2[numCurves * 4 - 1] = 2F;
-    indexC += 4;
-
-  }
-
-  private void createResults( ){
-    int numCurves = (controlPoints.size( ) - 1);
-    for( int i = 0; i < numCurves; i++ ){
-      valuesX[(i * 2)] = controlPoints.get( i ).x( );
-      valuesX[(i * 2) + 1] = controlPoints.get( i + 1 ).x( );
-      valuesY[(i * 2)] = controlPoints.get( i ).y( );
-      valuesY[(i * 2) + 1] = controlPoints.get( i + 1 ).y( );
-      valuesZ[(i * 2)] = controlPoints.get( i ).z( );
-      valuesZ[(i * 2) + 1] = controlPoints.get( i + 1 ).z( );
-    }
-    for( int i = numCurves * 2; i < numCurves * 4; i += 2 ){
+      // ---------------
+      aux1[indexC] = 3F;
+      aux2[indexC] = 6F;
+      // ---------------
+      aux1[indexC + 1] = 2F;
+      aux2[indexC + 1] = 2F;
+      aux2[indexC + 5] = -2F;
+      // ---------------
+      aux1[indexC + 2] = 1F;
+      aux1[indexC + 6] = -1F;
+      // ----------------
       valuesX[i] = 0;
       valuesX[i + 1] = 0;
       valuesY[i] = 0;
@@ -142,7 +109,20 @@ public class Curves
       valuesZ[i] = 0;
       valuesZ[i + 1] = 0;
     }
-    return;
+
+    // 2 ecuations
+    float[] aux1 = matrix[(4 * numCurves) - 2];
+    float[] aux2 = matrix[(4 * numCurves) - 1];
+    aux1[1] = 2F;
+    aux2[numCurves * 4 - 4] = 6F;
+    aux2[numCurves * 4 - 3] = 2F;
+    valuesX[numCurves * 4 - 2] = 0;
+    valuesX[numCurves * 4 - 1] = 0;
+    valuesY[numCurves * 4 - 2] = 0;
+    valuesY[numCurves * 4 - 1] = 0;
+    valuesZ[numCurves * 4 - 2] = 0;
+    valuesZ[numCurves * 4 - 1] = 0;
+
   }
 
   private void invertMatrix( ){
@@ -219,9 +199,9 @@ public class Curves
         sum[1] += matrix[i][j] * valuesY[j];
         sum[2] += matrix[i][j] * valuesZ[j];
       }
-      incognits[i] = sum[0];
-      incognits[i + numIncognits] = sum[1];
-      incognits[i + (2 * numIncognits)] = sum[2];
+      incognits[0][i] = sum[0];
+      incognits[1][i] = sum[1];
+      incognits[2][i] = sum[2];
     }
   }
 
@@ -229,7 +209,7 @@ public class Curves
     for( int l = 0; l < matrix.length; l++ ){
       for( int p = 0; p < matrix.length; p++ ){
         print( matrix[l][p] );
-        print( "  " );
+        print( "," );
       }
       println(  );
     }
