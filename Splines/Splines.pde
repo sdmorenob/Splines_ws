@@ -146,7 +146,7 @@ void draw( ){
 }
 
 void keyPressed( ){
-  if( key == ' ' )
+  if( key == ' ')
     if( mode < 3 ) mode++;
     else mode = 0;
   if( key == 'g' )
