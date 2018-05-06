@@ -76,45 +76,66 @@ void draw( ){
    * Splines implementation *
    **************************/
 
+  float dU = 0.002F;
   switch( mode ){
+    // Begin natural cubic splines implementation
     case 0:
-      //interpolator.keyFrames( );
-      Vector[] points = new Vector[8];
-      int l = 0;
-      for( Frame frame : interpolator.keyFrames( ) ){
-        points[l++] = frame.position( );
-      }
-      float dU = 0.002F;
-      float[][] coefficients = curves.naturalCubicSpline( );
-      //float[][] points2 = new float[3][8];
+      float[][] coefficients;
+      coefficients = curves.naturalCubicSpline( );
       for( int i = 0; i < curves.numCurves( ); i++ ){
-        int k = (int)(1/dU) + 100;
+        int k = (int)(1/dU) + (int)((1/dU)*0.2);
         float[][] point = new float[3][k];
-        for( float U = 0F, j = 0F; U <= 1.1F; U += dU, j += 1 ){
+        for( float U = 0F, j = 0F; U <= 1F; U += dU, j += 1 ){
           float U3 = pow( U, 3 );
           float U2 = pow( U, 2 );
           float X = U3 * coefficients[0][i*4] + U2 * coefficients[0][(i*4)+1] + U * coefficients[0][(i*4)+2] + coefficients[0][(i*4)+3];
           float Y = U3 * coefficients[1][i*4] + U2 * coefficients[1][(i*4)+1] + U * coefficients[1][(i*4)+2] + coefficients[1][(i*4)+3];
           float Z = U3 * coefficients[2][i*4] + U2 * coefficients[2][(i*4)+1] + U * coefficients[2][(i*4)+2] + coefficients[2][(i*4)+3];
-          /*println( i + 1, "   NumCurves: ", curves.numCurves( ) );
-            println( "X: ", X, "  Y: ", Y ,"  Z: ", Z );
-            println( "dxi: ", coefficients[0][(i*4)+3], "  dyi: ", coefficients[1][(i*4)+3], "  dzi: ", coefficients[2][(i*4)+3] );
-            println( "  X: ", points[i+1].x( ), "  Y: ", points[i+1].y( ) ,"  Z: ", points[i+1].z( ) );*/
-          
+
           point[0][(int)j] = X;
           point[1][(int)j] = Y;
           point[2][(int)j] = Z;
         }
-        stroke( 255 );
+        strokeWeight( 2 );
+        fill( 255, 255, 255 );
+        stroke( 255, 255, 255 );
         for( int p = 0; p < (int)(1/dU) - 1; p++ ){
-          /*println( "k: ", k, "  p: ", p );*/
           line( point[0][p], point[1][p], point[2][p], point[0][p + 1], point[1][p + 1], point[2][p + 1] );
         }
+        strokeWeight( 1 );
       }
     break;
+    // End natural cubic splines implementation
+    // Begin Hermite spline implementation
     case 1:
-      curves.hermiteSpline( );
+      float[][][]coefficientsH = curves.hermiteSpline( );
+      for( int i = 0; i < curves.numCurves( ); i++ ){
+        int k = (int)(1/dU) + 100;
+        float[][] point = new float[3][k];
+        for( float U = 0F, j = 0F; U <= 1F; U += dU, j += 1 ){
+          float U3 = pow( U, 3 );
+          float U2 = pow( U, 2 );
+          float H0 = (2 * U3) - (3 * U2) + 1;
+          float H1 = (-2 * U3) + (3 * U2);
+          float H2 = U3 - (2 * U2) + U;
+          float H3 = U3 - U2;
+          float X = coefficientsH[i][0][0] * H0 + coefficientsH[i][0][1] * H1 + coefficientsH[i][0][2] * H2 + coefficientsH[i][0][3] * H3;
+          float Y = coefficientsH[i][1][0] * H0 + coefficientsH[i][1][1] * H1 + coefficientsH[i][1][2] * H2 + coefficientsH[i][1][3] * H3;
+          float Z = coefficientsH[i][2][0] * H0 + coefficientsH[i][2][1] * H1 + coefficientsH[i][2][2] * H2 + coefficientsH[i][2][3] * H3;
+          point[0][(int)j] = X;
+          point[1][(int)j] = Y;
+          point[2][(int)j] = Z;
+        }
+        strokeWeight( 2 );
+        fill( 0, 0, 255 );
+        stroke( 0, 0, 255 );
+        for( int p = 0; p < (int)(1/dU) - 1; p++ ){
+          line( point[0][p], point[1][p], point[2][p], point[0][p + 1], point[1][p + 1], point[2][p + 1] );
+        }
+        strokeWeight( 1 );
+      }
     break;
+    // End Hermite spline implementation
     case 2:
       curves.bezierSpline( 7 );
     break;

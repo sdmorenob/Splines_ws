@@ -4,7 +4,7 @@ import java.util.Arrays;
 public class Curves
 {
   public ArrayList<Vector> controlPoints;
-  private float[][] incognits;
+  public float[][] incognits;
   private float[] valuesX;
   private float[] valuesY;
   private float[] valuesZ;
@@ -29,7 +29,7 @@ public class Curves
       matrix = new float[numIncognits][numIncognits];
       for( int i = 0; i < numIncognits; i++ ){
         for( int j = 0; j < numIncognits; j++ ){
-          matrix[i][j] = 0F; 
+          matrix[i][j] = 0F;
         }
       }
       this.solve( );
@@ -37,17 +37,18 @@ public class Curves
     return incognits;
   }
 
-  public void hermiteSpline( ){
-    //             3        2
-    // P(u) = a * u  + b * u  + c * u + d
-    // P_k = P( 0 ) = d
-    // P_k = P( 1 ) = a + b + c + d
-    // Dp_k = P'( 0 ) = c
-    // Dp_k+1 = P'( 1 ) = ( 3a, 2b, c )
-    // | a |    |  2 -2  1  1 |  |   P_k   |
-    // | b | _  | -3  3 -2 -1 |  |  P_k+1  |
-    // | c | -  |  0  0  1  0 |  |  Dp_k   |
-    // | d |    |  1  0  0  0 |  | Dp_k+1  |
+  public float[][][] hermiteSpline( ){
+    float[][][] coefficients = new float[this.numCurves( )][3][4];
+    for( int i = 0; i < this.numCurves( ); i++ ){
+      for( int j = 0; j < 3; j++ ){
+        // Coefficients for the polinomio i in X, Y and Z
+        coefficients[i][j][0] = incognits[j][(i * 4) + 3]; // pk = d
+        coefficients[i][j][1] = incognits[j][(i * 4)] + incognits[j][(i * 4) + 1] + incognits[j][(i * 4) + 2] + incognits[j][(i * 4) + 3]; // pk+1 = a + b + c
+        coefficients[i][j][2] = incognits[j][(i * 4) + 2]; // Dpk = c
+        coefficients[i][j][3] = 3 * incognits[j][(i * 4)] + 2 * incognits[j][(i * 4) + 1] + incognits[j][(i * 4) + 2]; // Dpk+1 = 3a + 2b + c
+      }
+    }
+    return coefficients;
   }
 
   public void bezierSpline( int degree ){
@@ -57,7 +58,6 @@ public class Curves
   private void solve( ){
     // Matrix
     this.createMatrix( );
-    drawMatrix( );
     this.invertMatrix( );
     this.findIncognits( );
   }
