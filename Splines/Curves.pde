@@ -205,26 +205,6 @@ public class Curves
     }
   }
 
-  private void drawMatrix( ){
-    for( int l = 0; l < matrix.length; l++ ){
-      for( int p = 0; p < matrix.length; p++ ){
-        print( matrix[l][p] );
-        print( "," );
-      }
-      println(  );
-    }
-  }
-
-  private void drawMatrix( float[][] matrix ){
-    for( int l = 0; l < matrix.length; l++ ){
-      for( int p = 0; p < matrix.length; p++ ){
-        print( matrix[l][p] );
-        print( "  " );
-      }
-      println(  );
-    }
-  }
-
   public int numControlPoints( ){
     return controlPoints.size( );
   };
@@ -232,5 +212,71 @@ public class Curves
   public int numCurves( ){
     return numControlPoints( ) - 1;
   }
+
+  // Bezier implementation
+
+  public void transform( int numberpoints, Frame[] frames ){
+
+    for( float delta = 0; delta <= 1.0; delta += 0.0001 ){
+
+      //Call the function for each delta iteration
+      float [][] auxiliar = new float[numberpoints][3];
+
+      auxiliar =  convertiraArreglo( frames, numberpoints );
+
+      //calculate the points for each iteration
+      calculatePoints( auxiliar, delta );
+
+    }
+
+  }
+  
+  public float[][] convertiraArreglo( Frame[] frames, int numberpoints ){
+
+    float[][] arreglo = new float[numberpoints][3];
+
+      for( int i = 0; i < numberpoints; i++ ){
+        arreglo[i][0] = frames[i].position( ).x( );
+        arreglo[i][1] = frames[i].position( ).y( );
+        arreglo[i][2] = frames[i].position( ).z( );
+
+      }
+
+    return arreglo;
+  }
+
+  public void calculatePoints( float[][] arreglo, float parametro ){
+
+    while( arreglo.length > 0 ){
+
+      if( arreglo.length - 1 == 0 ){
+        //recursive(arreglo, arreglo.length-1); 
+        int variar_array = control_points;
+        if( variar_array == arreglo.length - 1 )
+          modify = false;
+        else
+          modify = true;
+        point( arreglo[0][0], arreglo[0][1], arreglo[0][2] );
+      }
+      int modo = 2;
+      arreglo = castelJau( arreglo, parametro, modo );
+    }
+
+  }
+
+  public float[][] castelJau( float[][] puntos, float parametro, int modo ){
+
+    float[][] itera = new float[puntos.length - 1][3];
+    if(puntos.length-1 == 0)
+      return itera;
+
+    for( int i = 0; i < puntos.length - 1; i++ ){
+      itera[i][0] = (1 - parametro) * puntos[i][0] + parametro * puntos[i+1][0];
+      itera[i][1] = (1 - parametro) * puntos[i][1] + parametro * puntos[i+1][1];
+      itera[i][2] = (1 - parametro) * puntos[i][2] + parametro * puntos[i+1][2];
+    }
+    return itera;
+  }
+
 
 }
